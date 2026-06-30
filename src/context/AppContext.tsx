@@ -11,7 +11,32 @@ import {
 } from "react";
 import { topics } from "@/data/topics";
 import { stories, storiesByTopic, storyById } from "@/data/stories";
-import type { Mode, Story, StoryMessage } from "@/lib/types";
+import type { ContinueTurn, Mode, Story, StoryMessage } from "@/lib/types";
+
+let turnSeq = 0;
+const newTurnId = () => `c${Date.now()}-${turnSeq++}`;
+
+interface GroqMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Build the chat history (story + continue turns) for the Groq request. */
+function toGroqHistory(
+  story: Story,
+  practiceAnswers: Record<string, string>,
+  turns: ContinueTurn[],
+): GroqMessage[] {
+  const base: GroqMessage[] = story.messages.map((m) => ({
+    role: m.speaker === "ai" ? "assistant" : "user",
+    content: m.speaker === "user" ? practiceAnswers[m.id] || m.en : m.en,
+  }));
+  const cont: GroqMessage[] = turns.map((t) => ({
+    role: t.sender === "ai" ? "assistant" : "user",
+    content: t.en,
+  }));
+  return [...base, ...cont];
+}
 
 interface Progress {
   done: number;
@@ -56,6 +81,14 @@ interface AppState {
   toggleJa: () => void;
   toggleDark: () => void;
 
+  // continue mode (free chat via Groq)
+  continueTurns: ContinueTurn[];
+  continueLoading: boolean;
+  continueError: string | null;
+  openContinue: () => void;
+  sendContinue: (text: string) => void;
+  restartContinue: () => void;
+
   // derived
   topicProgress: (topicId: string) => Progress;
   totalProgress: () => Progress;
@@ -85,6 +118,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [read, setRead] = useState<Set<string>>(new Set());
   const [showJa, setShowJa] = useState(false);
   const [dark, setDark] = useState(false);
+
+  const [continueTurns, setContinueTurns] = useState<ContinueTurn[]>([]);
+  const [continueLoading, setContinueLoading] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
 
   // hydrate
   useEffect(() => {
@@ -150,6 +187,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setActiveStoryId(storyId);
       setModeState(m);
       setPracticeAnswers({});
+      setContinueTurns([]);
+      setContinueError(null);
       if (m === "read") {
         markRead(storyId);
         setCursor(s.messages.length);
@@ -204,6 +243,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const closeStory = useCallback(() => {
     setActiveStoryId(null);
   }, []);
+
+  /** Call the server route and append the AI's reply as a new turn. */
+  const requestContinue = useCallback(async (history: GroqMessage[]) => {
+    setContinueLoading(true);
+    setContinueError(null);
+    try {
+      const res = await fetch("/api/continue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setContinueError(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+      setContinueTurns((prev) => [
+        ...prev,
+        {
+          id: newTurnId(),
+          sender: "ai",
+          en: data.en || "",
+          ja: data.ja || "",
+          suggested: data.suggested || undefined,
+        },
+      ]);
+    } catch {
+      setContinueError("Could not reach the server. Please try again.");
+    } finally {
+      setContinueLoading(false);
+    }
+  }, []);
+
+  const openContinue = useCallback(() => {
+    if (!story) return;
+    setModeState("continue");
+    setContinueError(null);
+    if (continueTurns.length === 0 && !continueLoading) {
+      requestContinue(toGroqHistory(story, practiceAnswers, []));
+    }
+  }, [story, continueTurns.length, continueLoading, practiceAnswers, requestContinue]);
+
+  const sendContinue = useCallback(
+    (text: string) => {
+      if (!story || continueLoading) return;
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const userTurn: ContinueTurn = {
+        id: newTurnId(),
+        sender: "user",
+        en: trimmed,
+        ja: "",
+      };
+      const nextTurns = [...continueTurns, userTurn];
+      setContinueTurns(nextTurns);
+      requestContinue(toGroqHistory(story, practiceAnswers, nextTurns));
+    },
+    [story, continueLoading, continueTurns, practiceAnswers, requestContinue],
+  );
+
+  const restartContinue = useCallback(() => {
+    if (!story) return;
+    setContinueTurns([]);
+    setContinueError(null);
+    requestContinue(toGroqHistory(story, practiceAnswers, []));
+  }, [story, practiceAnswers, requestContinue]);
 
   const selectTopic = useCallback((topicId: string) => {
     setActiveTopicId(topicId);
@@ -276,6 +381,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeStory,
       toggleJa,
       toggleDark,
+      continueTurns,
+      continueLoading,
+      continueError,
+      openContinue,
+      sendContinue,
+      restartContinue,
       topicProgress,
       totalProgress,
     }),
@@ -302,6 +413,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeStory,
       toggleJa,
       toggleDark,
+      continueTurns,
+      continueLoading,
+      continueError,
+      openContinue,
+      sendContinue,
+      restartContinue,
       topicProgress,
       totalProgress,
     ],

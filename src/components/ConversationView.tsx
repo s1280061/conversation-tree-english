@@ -1,16 +1,41 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ChatBubble } from "./Message";
 import { SuggestedAnswers } from "./ExampleAnswers";
+import type { Mode } from "@/lib/types";
 
 const DIFF_STYLE: Record<string, string> = {
   beginner: "bg-emerald-500/15 text-emerald-500",
   intermediate: "bg-amber-500/15 text-amber-500",
   advanced: "bg-rose-500/15 text-rose-500",
 };
+
+const TABS: { mode: Mode; label: string }[] = [
+  { mode: "read", label: "📖 Read" },
+  { mode: "practice", label: "🎤 Practice" },
+  { mode: "continue", label: "💬 Continue" },
+];
+
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 px-1">
+      <span className="text-[11px] font-semibold text-text-faint">AI</span>
+      <div className="flex gap-1 rounded-2xl rounded-tl-md bg-[var(--ai-bubble)] px-3 py-3 shadow-sm">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-text-faint"
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
+            transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function StoryView() {
   const {
@@ -24,22 +49,42 @@ export function StoryView() {
     answerPractice,
     restartPractice,
     closeStory,
+    continueTurns,
+    continueLoading,
+    continueError,
+    openContinue,
+    sendContinue,
+    restartContinue,
   } = useApp();
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [visibleMessages.length, isStoryFinished, mode]);
+  }, [visibleMessages.length, isStoryFinished, mode, continueTurns.length, continueLoading]);
+
+  const lastAiTurn = useMemo(
+    () => [...continueTurns].reverse().find((t) => t.sender === "ai"),
+    [continueTurns],
+  );
 
   if (!story) return null;
 
-  const submitDraft = () => {
+  const submitPractice = () => {
     const text = draft.trim();
     if (!text) return;
     answerPractice(text);
     setDraft("");
   };
+
+  const submitContinue = () => {
+    const text = draft.trim();
+    if (!text) return;
+    sendContinue(text);
+    setDraft("");
+  };
+
+  const openTab = (m: Mode) => (m === "continue" ? openContinue() : setMode(m));
 
   return (
     <div className="flex h-full flex-col">
@@ -67,18 +112,16 @@ export function StoryView() {
 
       {/* mode tabs */}
       <div className="flex gap-1 border-b border-border px-4 py-2">
-        {(["read", "practice"] as const).map((m) => (
+        {TABS.map((t) => (
           <button
-            key={m}
+            key={t.mode}
             type="button"
-            onClick={() => setMode(m)}
+            onClick={() => openTab(t.mode)}
             className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition ${
-              mode === m
-                ? "bg-accent text-white shadow-sm"
-                : "text-text-soft hover:bg-bg-soft"
+              mode === t.mode ? "bg-accent text-white shadow-sm" : "text-text-soft hover:bg-bg-soft"
             }`}
           >
-            {m === "read" ? "📖 Read" : "🎤 Practice"}
+            {t.label}
           </button>
         ))}
         <div className="flex-1" />
@@ -91,22 +134,62 @@ export function StoryView() {
             ↺ Restart
           </button>
         )}
+        {mode === "continue" && (
+          <button
+            type="button"
+            onClick={restartContinue}
+            disabled={continueLoading}
+            className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-soft transition hover:bg-bg-soft disabled:opacity-40"
+          >
+            ↺ Restart
+          </button>
+        )}
       </div>
 
       {/* messages */}
       <div className="scroll-thin flex-1 space-y-4 overflow-y-auto px-4 py-5">
-        {visibleMessages.map((m) => (
-          <ChatBubble
-            key={m.id}
-            speaker={m.speaker}
-            en={m.en}
-            ja={m.ja}
-            voice={m.voice}
-            displayText={
-              mode === "practice" && m.speaker === "user" ? practiceAnswers[m.id] : undefined
-            }
-          />
-        ))}
+        {mode !== "continue" &&
+          visibleMessages.map((m) => (
+            <ChatBubble
+              key={m.id}
+              speaker={m.speaker}
+              en={m.en}
+              ja={m.ja}
+              voice={m.voice}
+              displayText={
+                mode === "practice" && m.speaker === "user" ? practiceAnswers[m.id] : undefined
+              }
+            />
+          ))}
+
+        {mode === "continue" && (
+          <>
+            {story.messages.map((m) => (
+              <ChatBubble key={m.id} speaker={m.speaker} en={m.en} ja={m.ja} voice={m.voice} />
+            ))}
+            <div className="my-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-text-faint">
+              <span className="h-px flex-1 bg-border" />
+              continue with AI
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            {continueTurns.map((t) => (
+              <ChatBubble key={t.id} speaker={t.sender} en={t.en} ja={t.ja} />
+            ))}
+            {continueLoading && <TypingDots />}
+            {continueError && (
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[13px] text-rose-500">
+                {continueError}
+                <button
+                  type="button"
+                  onClick={restartContinue}
+                  className="ml-2 underline underline-offset-2"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+          </>
+        )}
         <div ref={endRef} />
       </div>
 
@@ -152,13 +235,13 @@ export function StoryView() {
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitDraft()}
+                  onKeyDown={(e) => e.key === "Enter" && submitPractice()}
                   placeholder="Type your own answer in English…"
                   className="flex-1 rounded-full border border-border bg-panel-solid/70 px-4 py-2.5 text-[14px] outline-none transition focus:border-accent/60"
                 />
                 <button
                   type="button"
-                  onClick={submitDraft}
+                  onClick={submitPractice}
                   disabled={!draft.trim()}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white transition enabled:hover:opacity-90 enabled:active:scale-90 disabled:opacity-40"
                   aria-label="Send"
@@ -178,22 +261,22 @@ export function StoryView() {
             >
               <p className="text-[15px] font-semibold">🎉 Story complete!</p>
               <p className="text-[13px] text-text-soft">
-                You spoke through the whole conversation. Nice work.
+                You spoke through the whole conversation. Keep it going with AI?
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
-                  onClick={restartPractice}
+                  onClick={openContinue}
                   className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90"
                 >
-                  🎤 Practice again
+                  💬 Continue with AI
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMode("read")}
+                  onClick={restartPractice}
                   className="rounded-full border border-border px-4 py-2 text-[13px] font-medium text-text-soft transition hover:bg-bg-soft"
                 >
-                  📖 Read again
+                  🎤 Practice again
                 </button>
                 <button
                   type="button"
@@ -203,9 +286,42 @@ export function StoryView() {
                   ← Library
                 </button>
               </div>
-              <p className="text-[11px] text-text-faint">
-                Continue mode (free chat with AI) is coming soon.
-              </p>
+            </motion.div>
+          )}
+
+          {mode === "continue" && (
+            <motion.div
+              key="continue"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="space-y-3"
+            >
+              {lastAiTurn?.suggested && !continueLoading && (
+                <SuggestedAnswers
+                  suggestions={lastAiTurn.suggested}
+                  onPick={(t) => sendContinue(t)}
+                />
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitContinue()}
+                  placeholder={continueLoading ? "AI is replying…" : "Reply in English…"}
+                  disabled={continueLoading}
+                  className="flex-1 rounded-full border border-border bg-panel-solid/70 px-4 py-2.5 text-[14px] outline-none transition focus:border-accent/60 disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={submitContinue}
+                  disabled={!draft.trim() || continueLoading}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white transition enabled:hover:opacity-90 enabled:active:scale-90 disabled:opacity-40"
+                  aria-label="Send"
+                >
+                  ↑
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

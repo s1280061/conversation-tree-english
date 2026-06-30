@@ -48,7 +48,17 @@ export interface Topic {
 }
 
 /** Where the user is, in the app shell. */
-export type Mode = "read" | "practice";
+export type Mode = "read" | "practice" | "continue";
+
+/** A turn in the free-chat Continue mode (AI replies come from Groq). */
+export interface ContinueTurn {
+  id: string;
+  sender: Speaker;
+  en: string;
+  ja: string;
+  /** For AI turns: sample answers the user could give back. */
+  suggested?: SuggestedAnswers;
+}
 
 /** A turn that has been played out in the chat surface. */
 export interface PlayedMessage extends StoryMessage {
