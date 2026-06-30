@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "Conversation Tree · Speak English about yourself",
   description:
     "Learn everyday English by branching through real conversations like a skill tree.",
+  appleWebApp: {
+    capable: true,
+    title: "Conversation Tree",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
