@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌳 Conversation Tree English
 
-## Getting Started
+Learn everyday English by *branching through real conversations* like a game skill tree.
+The goal is simple: **become able to talk about yourself in English.**
 
-First, run the development server:
+Most apps make you memorize isolated sentences. Real conversation is a tree:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Topic → Question → Answer → Follow-up → Answer → ...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This app visualizes that tree, lets you walk down any branch, and shows
+Beginner / Intermediate / Advanced example answers for every question.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features (MVP)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Tree view** (left) — your conversation map, rendered with React Flow. The current
+  node is highlighted; finished branches turn green. Click a branch to jump to it.
+- **Conversation** (center) — the AI asks, you answer by tapping an example or typing
+  your own. Follow-up questions appear one by one.
+- **Japanese translation** — every line has a one-tap 🇯🇵 toggle, plus a global "Show JP".
+- **Example answers** — Beginner / Intermediate / Advanced for each question.
+- **Voice** 🔊 — Web Speech API reads any sentence aloud.
+- **Progress** (right) — per-topic % and an overall ring. Persisted in `localStorage`.
+- **Dark mode** — manual toggle, remembers your choice.
 
-## Learn More
+## Stack
 
-To learn more about Next.js, take a look at the following resources:
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · React Flow · Framer Motion.
+No backend and no API keys required for the MVP — all conversation data is static.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Run
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+# http://localhost:3000
+```
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+src/
+  app/                 layout, page (3-panel shell), globals.css (design tokens)
+  components/
+    TopBar.tsx         title, Show-JP toggle, dark-mode toggle
+    TreeView.tsx       React Flow conversation map
+    ConversationView.tsx  chat + composer (branch chips / examples / input)
+    Message.tsx        chat bubble + speak + JP toggle
+    ExampleAnswers.tsx Beginner/Intermediate/Advanced cards
+    ProgressPanel.tsx  topic list + overall progress ring
+    SpeakButton.tsx    Web Speech API button
+  context/AppContext.tsx   state + conversation state machine + progress
+  data/topics.ts       the conversation trees (static)
+  lib/types.ts         Topic / Branch / QuestionNode / ChatMessage
+  lib/speech.ts        speech-synthesis helper
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Adding a topic
+
+Append a `Topic` object to `src/data/topics.ts`. Each topic has an `opening`
+question and several `branches` (possible answers), and each branch has
+`questions` with `beginner`/`intermediate`/`advanced` examples. The tree view,
+progress, and chat all derive from this data automatically.
+
+## Roadmap
+
+The conversation engine in `AppContext` already isolates the "what question comes
+next" decision, so these can be layered on without reworking the UI:
+
+1. **AI-generated follow-ups** — replace the static next-question lookup with an
+   LLM call (Claude / OpenAI) that keeps the tree shape but personalizes wording.
+2. **Personal memory** — store user answers and have the AI reference them later
+   ("You told me you like KFC — did you go this week?").
+3. **Personal vocabulary** — save unknown words with example sentences for review.
+4. **Auto-growing tree** — generate new branches from the user's own answers.
