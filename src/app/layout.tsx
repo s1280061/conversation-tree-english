@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "Conversation Tree · Speak English about yourself",
   description:
     "Learn everyday English by branching through real conversations like a skill tree.",
+  appleWebApp: { capable: true, title: "Conv Tree", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6366f1",
 };
 
 export default function RootLayout({
