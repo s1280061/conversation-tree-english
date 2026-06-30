@@ -59,9 +59,11 @@ export async function POST(req: Request) {
   }
 
   let seed: Seed;
+  let modelOverride: string | undefined;
   try {
     const body = await req.json();
     seed = body.seed;
+    if (typeof body.model === "string" && body.model) modelOverride = body.model;
     if (!seed?.id || !seed?.topicId || !seed?.brief) throw new Error("bad seed");
   } catch {
     return NextResponse.json({ error: "Invalid seed in request body." }, { status: 400 });
@@ -81,7 +83,7 @@ Write about ${turns} user turns (so roughly ${turns * 2} messages total), starti
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: modelOverride || MODEL,
         temperature: 0.7,
         max_tokens: 4000,
         response_format: { type: "json_object" },

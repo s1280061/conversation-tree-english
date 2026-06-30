@@ -111,27 +111,27 @@ export function StoryView() {
       </div>
 
       {/* mode tabs */}
-      <div className="flex gap-1 border-b border-border px-4 py-2">
+      <div className="scroll-thin flex items-center gap-1 overflow-x-auto border-b border-border px-3 py-2 sm:px-4">
         {TABS.map((t) => (
           <button
             key={t.mode}
             type="button"
             onClick={() => openTab(t.mode)}
-            className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition ${
               mode === t.mode ? "bg-accent text-white shadow-sm" : "text-text-soft hover:bg-bg-soft"
             }`}
           >
             {t.label}
           </button>
         ))}
-        <div className="flex-1" />
+        <div className="min-w-2 flex-1" />
         {mode === "practice" && (
           <button
             type="button"
             onClick={restartPractice}
-            className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-soft transition hover:bg-bg-soft"
+            className="shrink-0 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-soft transition hover:bg-bg-soft"
           >
-            ↺ Restart
+            ↺ <span className="hidden sm:inline">Restart</span>
           </button>
         )}
         {mode === "continue" && (
@@ -139,9 +139,9 @@ export function StoryView() {
             type="button"
             onClick={restartContinue}
             disabled={continueLoading}
-            className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-soft transition hover:bg-bg-soft disabled:opacity-40"
+            className="shrink-0 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-soft transition hover:bg-bg-soft disabled:opacity-40"
           >
-            ↺ Restart
+            ↺ <span className="hidden sm:inline">Restart</span>
           </button>
         )}
       </div>
@@ -202,7 +202,7 @@ export function StoryView() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="flex items-center justify-between gap-3"
+              className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
               <p className="text-[13px] text-text-soft">
                 Read it through, then try saying your own answers.
@@ -210,7 +210,7 @@ export function StoryView() {
               <button
                 type="button"
                 onClick={() => setMode("practice")}
-                className="shrink-0 rounded-full bg-accent px-4 py-2 text-[14px] font-semibold text-white transition hover:opacity-90 active:scale-95"
+                className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90 active:scale-95"
               >
                 🎤 Practice this story
               </button>
