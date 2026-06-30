@@ -2,15 +2,29 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { ChatMessage } from "@/lib/types";
+import type { Speaker } from "@/lib/types";
 import { useApp } from "@/context/AppContext";
 import { SpeakButton } from "./SpeakButton";
 
-export function Message({ message }: { message: ChatMessage }) {
+export function ChatBubble({
+  speaker,
+  en,
+  ja,
+  voice,
+  /** Overrides the English text shown (used for the user's own practice answer). */
+  displayText,
+}: {
+  speaker: Speaker;
+  en: string;
+  ja: string;
+  voice?: string;
+  displayText?: string;
+}) {
   const { showJa } = useApp();
   const [revealJa, setRevealJa] = useState(false);
-  const isAi = message.sender === "ai";
-  const showTranslation = (showJa || revealJa) && !!message.ja;
+  const isAi = speaker === "ai";
+  const text = displayText ?? en;
+  const showTranslation = (showJa || revealJa) && !!ja && !displayText;
 
   return (
     <motion.div
@@ -19,7 +33,10 @@ export function Message({ message }: { message: ChatMessage }) {
       transition={{ type: "spring", stiffness: 380, damping: 30 }}
       className={`flex ${isAi ? "justify-start" : "justify-end"}`}
     >
-      <div className={`flex max-w-[80%] flex-col gap-1 ${isAi ? "items-start" : "items-end"}`}>
+      <div className={`flex max-w-[78%] flex-col gap-1 ${isAi ? "items-start" : "items-end"}`}>
+        {isAi && (
+          <span className="px-1 text-[11px] font-semibold text-text-faint">AI</span>
+        )}
         <div
           className={`relative rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
             isAi
@@ -27,7 +44,7 @@ export function Message({ message }: { message: ChatMessage }) {
               : "rounded-tr-md bg-[var(--user-bubble)] text-white"
           }`}
         >
-          <p>{message.en}</p>
+          <p>{text}</p>
           {showTranslation && (
             <motion.p
               initial={{ opacity: 0, height: 0 }}
@@ -36,14 +53,14 @@ export function Message({ message }: { message: ChatMessage }) {
                 isAi ? "border-border text-text-soft" : "border-white/25 text-white/85"
               }`}
             >
-              {message.ja}
+              {ja}
             </motion.p>
           )}
         </div>
 
         <div className={`flex items-center gap-1 px-1 ${isAi ? "" : "flex-row-reverse"}`}>
-          <SpeakButton text={message.en} />
-          {message.ja && (
+          <SpeakButton text={voice ?? text} />
+          {ja && !displayText && (
             <button
               type="button"
               onClick={() => setRevealJa((v) => !v)}

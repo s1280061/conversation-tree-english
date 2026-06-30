@@ -1,10 +1,16 @@
 "use client";
 
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider, useApp } from "@/context/AppContext";
 import { TopBar } from "@/components/TopBar";
-import { TreeView } from "@/components/TreeView";
-import { ConversationView } from "@/components/ConversationView";
-import { ProgressPanel } from "@/components/ProgressPanel";
+import { StoryTree } from "@/components/TreeView";
+import { StoryView } from "@/components/ConversationView";
+import { Library } from "@/components/Library";
+import { RightPanel } from "@/components/ProgressPanel";
+
+function Center() {
+  const { activeStoryId } = useApp();
+  return activeStoryId ? <StoryView /> : <Library />;
+}
 
 export default function Home() {
   return (
@@ -14,20 +20,20 @@ export default function Home() {
           <TopBar />
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[300px_minmax(0,1fr)_300px]">
-          {/* Left: tree */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[290px_minmax(0,1fr)_300px]">
+          {/* Left: conversation tree */}
           <div className="glass hidden min-h-0 overflow-hidden rounded-2xl lg:block">
-            <TreeView />
+            <StoryTree />
           </div>
 
-          {/* Center: chat */}
+          {/* Center: library or story */}
           <div className="glass min-h-0 overflow-hidden rounded-2xl">
-            <ConversationView />
+            <Center />
           </div>
 
-          {/* Right: progress */}
+          {/* Right: progress + topics + stories */}
           <div className="glass hidden min-h-0 overflow-hidden rounded-2xl lg:block">
-            <ProgressPanel />
+            <RightPanel />
           </div>
         </div>
       </div>

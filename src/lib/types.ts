@@ -1,48 +1,57 @@
+export type Difficulty = "beginner" | "intermediate" | "advanced";
 export type Level = "beginner" | "intermediate" | "advanced";
+export type Speaker = "ai" | "user";
 
-export interface ExampleAnswers {
+/** Three difficulty-graded ways a user could answer, shown in Practice mode. */
+export interface SuggestedAnswers {
   beginner: string;
   intermediate: string;
   advanced: string;
 }
 
-/** A follow-up question that lives under a branch. */
-export interface QuestionNode {
+/** One line of a pre-written conversation story. */
+export interface StoryMessage {
   id: string;
+  speaker: Speaker;
+  /** English text. For a user line this is the natural "model" answer (Read mode). */
   en: string;
   ja: string;
-  examples: ExampleAnswers;
+  /** Text used for voice playback; falls back to `en`. */
+  voice?: string;
+  /** For user lines: graded answer suggestions used in Practice mode. */
+  suggested?: SuggestedAnswers;
 }
 
-/** A possible answer to the topic's opening question, with its follow-ups. */
-export interface Branch {
+/** A complete, self-contained conversation — the core unit of the app. */
+export interface Story {
   id: string;
-  /** The answer label, e.g. "Watch YouTube". */
-  label_en: string;
-  label_ja: string;
-  emoji?: string;
-  questions: QuestionNode[];
+  topicId: string;
+  title: string;
+  title_ja: string;
+  emoji: string;
+  difficulty: Difficulty;
+  /** One-line description for the library card. */
+  summary: string;
+  summary_ja: string;
+  messages: StoryMessage[];
 }
 
+/** A category that groups many stories. */
 export interface Topic {
   id: string;
   emoji: string;
   title_en: string;
   title_ja: string;
-  /** The opening question the AI asks. */
-  opening: { en: string; ja: string };
-  branches: Branch[];
+  description: string;
+  /** Accent color (CSS color) used on cards / tree for this topic. */
+  color: string;
 }
 
-export type Sender = "ai" | "user";
+/** Where the user is, in the app shell. */
+export type Mode = "read" | "practice";
 
-export interface ChatMessage {
-  id: string;
-  sender: Sender;
-  en: string;
-  ja: string;
-  /** Linked question node id (for AI questions) so the tree can highlight. */
-  nodeId?: string;
-  /** Whether this AI message has example answers to show. */
-  questionId?: string;
+/** A turn that has been played out in the chat surface. */
+export interface PlayedMessage extends StoryMessage {
+  /** In practice, the actual text the user produced (may differ from `en`). */
+  userText?: string;
 }
