@@ -1,4 +1,5 @@
 import type { Story } from "@/lib/types";
+import generatedRaw from "./stories.generated.json";
 
 /**
  * Seed conversation stories, personalized to the user's profile
@@ -7,9 +8,10 @@ import type { Story } from "@/lib/types";
  *
  * Each story is a complete LINE-style conversation. User lines carry
  * `suggested` answers (beginner / intermediate / advanced) for Practice mode.
- * No AI is needed — everything here is static.
+ * No AI is needed — everything here is static. These hand-written stories are the
+ * "featured" set; bulk stories are AI-generated into stories.generated.json.
  */
-export const stories: Story[] = [
+const featuredStories: Story[] = [
   // ───────────────────────── WEEKEND ─────────────────────────
   {
     id: "wk-youtube",
@@ -782,6 +784,12 @@ export const stories: Story[] = [
     ],
   },
 ];
+
+/** Bulk stories generated from the user's profile (see scripts/generate.mjs). */
+const generatedStories = generatedRaw as unknown as Story[];
+
+/** All stories: hand-written featured set first, then generated ones. */
+export const stories: Story[] = [...featuredStories, ...generatedStories];
 
 export const storiesByTopic = (topicId: string) =>
   stories.filter((s) => s.topicId === topicId);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { KAITO_PROFILE } from "@/lib/profile";
 
 /**
  * Continue mode: given a story's conversation so far, ask Groq to keep the
@@ -13,14 +14,7 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const SYSTEM_PROMPT = `You are a warm, curious English conversation partner helping a Japanese learner named Kaito practice speaking English about his own life.
 
-About Kaito (use this to keep the conversation personal and relevant):
-- He is an engineer at Nissan, working on automotive and autonomous-driving technology.
-- He loves AI, machine learning, computer vision, and future mobility.
-- His dream is to earn a PhD (ideally in the US) and become an AI researcher.
-- He builds personal AI/web apps on weekends (TypeScript, Python, Next.js, FastAPI).
-- He likes KFC (about once a week), watching YouTube (AI/tech, e.g. MKBHD), and Steam games.
-- He's interested in Tesla, SpaceX, Elon Musk, startups, and studying abroad.
-- He wants practical, natural conversation — not textbook English.
+${KAITO_PROFILE}
 
 Your job: continue the conversation that already happened in the message history. Pick up naturally from Kaito's last message.
 
